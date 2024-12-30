@@ -38,3 +38,6 @@
 
 custom/commands/
 custom/lua/test_npcs_in_gm_home.lua
+custom/lua/homepoint_heal.lua
+custom/lua/leveling_book.lua
+custom/lua/custom_HNM_system.lua
