@@ -1,4 +1,4 @@
-/*
+﻿/*
 ===========================================================================
 
   Copyright (c) 2022 LandSandBoat Dev Teams
@@ -50,6 +50,7 @@ private:
         uint32                                 activeSessionCount;
         uint32                                 activeUniqueIPCount;
         std::array<uint32, ZONEID::MAX_ZONEID> zonePlayerCounts;
+        std::list<std::map<std::string, std::any>> activeSessionDetails;
     };
 
     shared_guarded<APIDataCache> m_apiDataCache;

@@ -67,6 +67,38 @@ HTTPServer::HTTPServer()
             });
         });
 
+        m_httpServer.Get("/api/sessions/details", [&](httplib::Request const& req, httplib::Response& res)
+        {
+            LockingUpdate();
+            m_apiDataCache.read([&](const auto& apiDataCache)
+            {
+
+                json j;
+
+                for (const auto& mapItem : apiDataCache.activeSessionDetails) {
+                    json j2;
+
+                    for (const auto& [key, value] : mapItem) {
+                        if (value.type() == typeid(std::string)) {
+                            j2[key] = std::any_cast<std::string>(value);
+                        } else if (value.type() == typeid(int)) {
+                            j2[key] = std::any_cast<int>(value);
+                        } else if (value.type() == typeid(double)) {
+                            j2[key] = std::any_cast<double>(value);
+                        } else if (value.type() == typeid(bool)) {
+                            j2[key] = std::any_cast<bool>(value);
+                        } else {
+                            // Handle other data types or throw an error
+                            std::cerr << "Unsupported data type in map" << std::endl;
+                        }
+                    }
+
+                    j.push_back(j2);
+                }
+                res.set_content(j.dump(), "application/json");
+            });
+        });
+
         m_httpServer.Get("/api/ips", [&](httplib::Request const& req, httplib::Response& res)
         {
             LockingUpdate();
@@ -210,6 +242,33 @@ void HTTPServer::LockingUpdate()
             {
                 apiDataCache.activeSessionCount = rset->get<uint32>("count");
             }
+        }
+
+        // Total active session details
+        {
+            auto rset = db::preparedStmt("select s.charid, c.charname, c.pos_zone, z.name zonename from accounts_sessions s, chars c, zone_settings z where s.charid = c.charid and c.pos_zone = z.zoneid;");
+            apiDataCache.activeSessionDetails.clear();
+
+            if (rset && rset->rowsCount())
+            {
+                while (rset->next())
+                {
+                    std::map<std::string, std::any> detailMap;
+
+                    int charId = rset->get<uint32>("charid");
+                    auto charname = rset->get<std::string>("charname");
+                    int zone = rset->get<uint16>("pos_zone");
+                    auto zonename = rset->get<std::string>("zonename");
+
+                    detailMap["charid"] = charId;
+                    detailMap["charname"] = charname;
+                    detailMap["zone"] = zone;
+                    detailMap["zonename"] = zonename;
+
+                    apiDataCache.activeSessionDetails.push_back(detailMap);
+                }
+            }
+            
         }
 
         // Total active unique IPs
