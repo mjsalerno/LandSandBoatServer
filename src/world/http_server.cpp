@@ -255,6 +255,33 @@ void HTTPServer::LockingUpdate()
                 }
             }
 
+            // Total active session details
+        {
+            auto rset = db::preparedStmt("select s.charid, c.charname, c.pos_zone, z.name zonename from accounts_sessions s, chars c, zone_settings z where s.charid = c.charid and c.pos_zone = z.zoneid");
+            apiDataCache.activeSessionDetails.clear();
+
+            if (rset && rset->rowsCount())
+            {
+                while (rset->next())
+                {
+                    std::map<std::string, std::any> detailMap;
+
+                    int charId = rset->get<uint32>("charid");
+                    auto charname = rset->get<std::string>("charname");
+                    int zone = rset->get<uint16>("pos_zone");
+                    auto zonename = rset->get<std::string>("zonename");
+
+                    detailMap["charid"] = charId;
+                    detailMap["charname"] = charname;
+                    detailMap["zone"] = zone;
+                    detailMap["zonename"] = zonename;
+
+                    apiDataCache.activeSessionDetails.push_back(detailMap);
+                }
+            }
+            
+        }
+
             lastUpdate_.store(now);
         });
 }
